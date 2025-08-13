@@ -1,0 +1,10 @@
+:root {
+    --nav-background: var(--color-zinc-800);
+    --nav-background-hover: var(--color-zinc-600);
+    --nav-background-active: var(--color-zinc-50);
+    --nav-background-active-hover: var(--color-zinc-300);
+    --nav-text: var(--color-zinc-50);
+    --nav-text-active: var(--color-zinc-800);
+
+    --page-background: var(--color-zinc-50);
+}

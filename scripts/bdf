@@ -1,0 +1,243 @@
+#!/bin/bash
+
+###############################################################################
+# Bundabrg's Developer Framework
+###############################################################################
+#
+# This script provides the tooling to wrap one or more components of code
+# in a developer environment such that the host machine does not need any
+# additional tools apart from docker, or vagrant (which can then provide a
+# docker environment). This can then be used in CI/CD as well for seamless
+# building and testing.
+#
+###############################################################################
+# Updated: 2025-08-09
+###############################################################################
+
+
+###############################################################################
+# Variables
+###############################################################################
+
+# The full path to the root of the project.
+# Default: parent folder of this script
+PROJECT_DIR=${PROJECT_DIR:-$(realpath "$(dirname ${0})"/..)}
+
+# Project name. Default uses the name of our parent folder
+PROJECT_NAME=${PROJECT_NAME:-$(basename ${PROJECT_DIR})}
+
+# Project cache dir. Default is ${PROJECT_DIR}/.cache
+PROJECT_CACHE=${PROJECT_CACHE:-${PROJECT_DIR}/.cache}
+
+# Project Environments dir. Default is ${PROJECT_DIR}/environments
+PROJECT_ENVIRONMENTS=${PROJECT_ENVIRONMENTS:-${PROJECT_DIR}/environments}
+
+# Project Components dir. Default is ${PROJECT_DIR}/components
+PROJECT_COMPONENTS=${PROJECT_COMPONENTS:-${PROJECT_DIR}/components}
+
+# Docker Workdir. Default is /work
+DOCKER_WORKDIR=${DOCKER_WORKDIR:-/work}
+
+# Docker Homedir. Default is /home/dev
+DOCKER_HOMEDIR=${DOCKER_HOMEDIR:-/home/dev}
+
+
+###############################################################################
+# Common Functions and Variables
+###############################################################################
+
+# Colours
+RESTORE=$(echo -en '\033[0m')
+RED=$(echo -en '\033[00;31m')
+GREEN=$(echo -en '\033[00;32m')
+YELLOW=$(echo -en '\033[00;33m')
+BLUE=$(echo -en '\033[00;34m')
+MAGENTA=$(echo -en '\033[00;35m')
+PURPLE=$(echo -en '\033[00;35m')
+CYAN=$(echo -en '\033[00;36m')
+LIGHTGRAY=$(echo -en '\033[00;37m')
+LRED=$(echo -en '\033[01;31m')
+LGREEN=$(echo -en '\033[01;32m')
+LYELLOW=$(echo -en '\033[01;33m')
+LBLUE=$(echo -en '\033[01;34m')
+LMAGENTA=$(echo -en '\033[01;35m')
+LPURPLE=$(echo -en '\033[01;35m')
+LCYAN=$(echo -en '\033[01;36m')
+WHITE=$(echo -en '\033[01;37m')
+
+# Logging
+function log() {
+  echo "${WHITE}[${LBLUE}$(basename $0)${WHITE}] ${RESTORE}$*"
+}
+
+
+###############################################################################
+# Help
+###############################################################################
+
+function show_help() {
+  echo "syntax:"
+  echo "  ${WHITE}${0}${RESTORE} ${YELLOW}<command>${RESTORE}"
+  echo
+  echo "commands available:"
+  echo "  - ${WHITE}build${RESTORE} ${YELLOW}<environment>${RESTORE} [${YELLOW}<docker image:tag>${RESTORE}]                  - Build local environment"
+  echo "  - ${WHITE}in${RESTORE} ${YELLOW}<environment>${RESTORE} [with ${YELLOW}<component>${RESTORE}] [parameters]          - Run in environment, can be a registry url"
+  echo
+  echo "local environments available:"
+  if [ ! -d "${PROJECT_ENVIRONMENTS}" ]; then
+    echo "  (no environments folder)"
+  else
+    for i in $(ls -d ${PROJECT_ENVIRONMENTS}/* | sort); do
+      echo "  - ${WHITE}$(basename ${i})${RESTORE}"
+    done
+  fi
+}
+
+
+###############################################################################
+# Build
+###############################################################################
+
+function command_build() {
+  ENVIRONMENT=${1}
+
+  if [ "${ENVIRONMENT}" = "" ]; then
+    echo "${RED}ERROR${RESTORE}: Environment not specified"
+    echo
+    show_help
+    exit 1
+  fi
+
+  shift
+
+  if [ ! -d "${PROJECT_ENVIRONMENTS}/${ENVIRONMENT}" ]; then
+    echo "${RED}ERROR${RESTORE}: Invalid Environment"
+    echo
+    show_help
+    exit 1
+  fi
+
+  log "Building environment: ${YELLOW}${i}${RESTORE}"
+
+  # Build Environment
+  docker buildx build -t ${PROJECT_NAME}/environment/${ENVIRONMENT} \
+    --build-arg workdir=${DOCKER_WORKDIR} \
+    --cache-to type=local,dest=${PROJECT_CACHE}/docker \
+    --cache-from type=local,src=${PROJECT_CACHE}/docker \
+    --load \
+    $@ \
+    ${PROJECT_ENVIRONMENTS}/${ENVIRONMENT}
+}
+
+
+###############################################################################
+# Run in Environment
+###############################################################################
+
+# Run inside environment
+function command_in() {
+  ENVIRONMENT=${1}
+
+  if [ "${ENVIRONMENT}" = "" ]; then
+    echo "${RED}ERROR${RESTORE}: Environment not specified"
+    echo
+    show_help
+    exit 1
+  fi
+
+  shift
+
+  # If environment matches a custom environment we will perform some extra steps
+  if [ -d "${PROJECT_ENVIRONMENTS}/${ENVIRONMENT}" ]; then
+    log "Found local environment: ${YELLOW}${ENVIRONMENT}${RESTORE}"
+    ENVIRONMENT_TAG="${PROJECT_NAME}/environment/${ENVIRONMENT}"
+
+    # If environment doesn't presently exist we will build it first
+    if ! docker inspect "${ENVIRONMENT_TAG}" >/dev/null 2>&1; then
+      command_build "${ENVIRONMENT}"
+    fi
+  else
+    # We will assume the environment is a remote one.
+    ENVIRONMENT_TAG=${ENVIRONMENT}
+    log "Using remote environment: ${YELLOW}${ENVIRONMENT_TAG}${RESTORE}"
+  fi
+
+  # Get a sanatised file friendly name for the environment
+  ENVIRONMENT_SANE=$(basename "$(echo "${ENVIRONMENT}" | cut -d : -f 1)")
+
+  # if the next paramter is 'with' then we will add a component
+  if [ "${1}" = "with" ];then
+    COMPONENT="${2}"
+    shift
+    shift
+
+    if [ -d "${PROJECT_COMPONENTS}/${COMPONENT}" ]; then
+      log "Using component: ${YELLOW}${COMPONENT}${RESTORE}"
+    else
+      log "${RED}ERROR${RESTORE}: Component ${YELLOW}${COMPONENT}${RESTORE} is not found under: ${PROJECT_COMPONENTS}"
+      exit 1
+    fi
+    WORKDIR=${PROJECT_COMPONENTS}/${COMPONENT}
+  else
+    COMPONENT=default
+    WORKDIR=${PROJECT_DIR}
+  fi
+
+  # Docker Flags
+  FLAGS=""
+
+  # Cache key based on environment name and optionally component so each has their own cache
+  CACHE="${PROJECT_CACHE}/environments/$(basename "$(echo "${ENVIRONMENT}" | cut -d : -f 1)")/${COMPONENT}"
+  mkdir -p "${CACHE}" "${CACHE}/home"
+
+  # Detect if STDIN is open
+  [ -t 0 ] && FLAGS="${FLAGS} -t"
+
+  # Run it
+  log Entering executor environment
+
+  # Enter Environment
+  docker run -i \
+    ${FLAGS} \
+    -v "${WORKDIR}":${DOCKER_WORKDIR} \
+    -v "${CACHE}/home":${DOCKER_HOMEDIR} \
+    --net host \
+    ${PROJECT_NAME}/environment/dev
+
+  log Exiting from executor environment
+}
+
+
+###############################################################################
+# Main
+###############################################################################
+
+## Sanity Checks
+if [ "${PROJECT_DIR}" = "" ]; then
+  echo "${RED}ERROR${RESTORE}: Can't detect PROJECT_DIR."
+  exit 1
+fi
+
+## Make sure Parameters are correct
+if [ "${1}" = "" ]; then
+  show_help
+  exit 1
+fi
+
+COMMAND=${1}
+shift
+
+case "${COMMAND}" in
+build)
+  command_build "$@"
+  ;;
+in)
+  command_in "$@"
+  ;;
+*)
+  echo "${RED}ERROR${RESTORE}: Unknown command: ${YELLOW}${COMMAND}${RESTORE}"
+  echo
+  show_help
+  exit 1
+  ;;
+esac
