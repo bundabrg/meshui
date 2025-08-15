@@ -3,6 +3,8 @@
         Input, Label, Helper, Button, Checkbox, A, Select, CloseButton,
         Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell
     } from "flowbite-svelte";
+    import {mc} from "$lib/meshcentral.svelte";
+    import {resolve} from "$app/paths";
 
     let {children} = $props();
 </script>
@@ -24,21 +26,16 @@
     <div class="overflow-auto flex-grow-1">
         <Table class="mt-5" hoverable={true}>
             <TableBody>
-                <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
-                    <TableBodyCell class="w-full">Group</TableBodyCell>
-                    <TableBodyCell>123</TableBodyCell>
-                </TableBodyRow>
-                <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
-                    <TableBodyCell class="w-full">Group</TableBodyCell>
-                    <TableBodyCell>123</TableBodyCell>
-                </TableBodyRow>
-                <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
-                    <TableBodyCell class="w-full">Group</TableBodyCell>
-                    <TableBodyCell>123</TableBodyCell>
-                </TableBodyRow>
+                {#each mc.meshes as mesh (mesh._id)}
+                    <TableBodyRow>
+                        <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
+                        <TableBodyCell class="w-full">
+                            <a href="{resolve('/devices/[device_id]', {device_id: mesh._id.substring(6)})}">
+                                {mesh.name}
+                            </a>
+                        </TableBodyCell>
+                    </TableBodyRow>
+                {/each}
             </TableBody>
         </Table>
     </div>

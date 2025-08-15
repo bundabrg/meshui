@@ -5,18 +5,19 @@
     } from "flowbite-svelte";
     import {Cog, UserCircle, ComputerDesktop, LockClosed} from "@steeze-ui/heroicons";
     import {Icon} from "@steeze-ui/svelte-icon";
-</script>
 
+</script>
 <div class="flex flex-col flex-grow-1 p-3 min-w-[500px] bg-white border-e border-e-slate-300">
     <div class="flex flex-row justify-between pb-10">
         <h1 class="text-4xl">Devices</h1>
         <span>(Selected Actions)</span>
     </div>
     <div class="flex flex-row items-center gap-2 ps-1">
-        <my-button type="checkbox" class="w-4 h-4 bg-gray-100 border-gray-300 dark:ring-offset-gray-800 focus:ring-2 me-2 rounded-sm text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:bg-gray-700 dark:border-gray-600"></my-button>
+        <my-button type="checkbox"
+                   class="w-4 h-4 bg-gray-100 border-gray-300 dark:ring-offset-gray-800 focus:ring-2 me-2 rounded-sm text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:bg-gray-700 dark:border-gray-600"></my-button>
         <Input type="text" placeholder="Filter">
             {#snippet right()}
-                <CloseButton onclick={() => (value = '')} />
+                <CloseButton onclick={() => (value = '')}/>
             {/snippet}
         </Input>
         <Select class="w-[200px]" placeholder="Status"/>
@@ -26,7 +27,9 @@
         <Table class="mt-5" hoverable={true}>
             <TableBody>
                 <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
+                    <TableBodyCell class="p-1">
+                        <Checkbox/>
+                    </TableBodyCell>
                     <TableBodyCell class="w-full">
                         <h2>Device</h2>
                         <span>Device Description</span><br>
@@ -39,7 +42,9 @@
                     </TableBodyCell>
                 </TableBodyRow>
                 <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
+                    <TableBodyCell class="p-1">
+                        <Checkbox/>
+                    </TableBodyCell>
                     <TableBodyCell class="w-full">
                         <h2>Device</h2>
                         <span>Device Description</span><br>
@@ -52,7 +57,9 @@
                     </TableBodyCell>
                 </TableBodyRow>
                 <TableBodyRow>
-                    <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
+                    <TableBodyCell class="p-1">
+                        <Checkbox/>
+                    </TableBodyCell>
                     <TableBodyCell class="w-full">
                         <h2 class="font-bold text-black">Device</h2>
                         <span>Device Description</span><br>
