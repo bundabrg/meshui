@@ -30,13 +30,13 @@
         <Table class="mt-5" hoverable={true}>
             <TableBody>
                 {#each Object.keys(meshes) as meshId (meshId)}
-                    {@const mesh = meshes[meshId].data}
+                    {@const mesh = meshes[meshId].get()}
                     <TableBodyRow>
                         <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
                         <TableBodyCell class="w-full">
-                            <a href="{resolve('/devices/[device_id]', {device_id: encodeURIComponent(mesh._id.substring(0))})}">
+<!--                            <a href="{resolve('/devices/[group_id]', {group_id: encodeURIComponent(mesh._id.substring(0))})}">-->
                                 {mesh.name}
-                            </a>
+<!--                            </a>-->
                         </TableBodyCell>
                     </TableBodyRow>
                 {/each}

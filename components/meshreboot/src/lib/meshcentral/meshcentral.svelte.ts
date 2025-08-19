@@ -1,66 +1,94 @@
 import { SvelteURL } from 'svelte/reactivity';
 import type {
-	MeshData,
+    Deferred,
+    MeshData,
 } from '$lib/meshcentral/types';
+import {T} from "tailwindcss/dist/types-B254mqw1";
 
-// class DeferredPromise<T> implements Deferred<T> {
-// 	promise: Promise<T>;
-// 	private originalResolve?: (value: PromiseLike<T> | T) => void;
-//
-// 	constructor() {
-// 		this.promise = new Promise((resolve) => {
-// 			this.originalResolve = resolve;
-// 		});
-// 	}
-//
-// 	resolve(value: T): void {
-// 		if (this.originalResolve) {
-// 			this.originalResolve(value);
-// 		}
-// 	}
-// }
+class DeferredPromise {
+	promise: Promise<void>;
+	private originalResolve?: (value: PromiseLike<void> | void) => void;
 
-class Mesh {
-	private mc: MeshcentralState;
-	public data: MeshData;
-	private loaded: boolean = false;
+	constructor() {
+		this.promise = new Promise((resolve) => {
+			this.originalResolve = resolve;
+		});
+	}
 
-	constructor(mc: MeshcentralState, data: MeshData) {
-		this.mc = mc;
-		this.data = $state(data);
-
-		setTimeout(() => {
-			this.data.name='changed';
-			console.log("changed again");
-		}, 2000);
+	resolve(): void {
+		if (this.originalResolve) {
+			this.originalResolve();
+		}
 	}
 }
 
-class Meshes {
-	private mc: MeshcentralState;
-	private _meshes: {
-		[key: string]: Mesh
-	}
-	public loaded: boolean = false;
+class DeferredData<T> {
+    protected mc: MeshcentralState;
+    protected _deferred?: DeferredPromise;
+    protected _loaded: boolean = false;
+    protected _data: T;
 
+    constructor(mc: MeshcentralState, data: T) {
+        this.mc = mc;
+        this._data = $state(data);
+    }
+
+    protected load() {
+    }
+
+    get() {
+        if (!this._deferred) {
+            this._deferred = new DeferredPromise();
+            this.load()
+        }
+        return this._data;
+    }
+
+    get loaded() {
+        return this._loaded;
+    }
+
+    async wait() {
+        const result = this.get();
+        await this._deferred?.promise;
+        return result;
+    }
+}
+
+class Mesh extends DeferredData<MeshData> {
+
+    constructor(mc: MeshcentralState, data: MeshData) {
+        super(mc, data);
+    }
+}
+
+
+class Meshes extends DeferredData<{[key: string]: Mesh}>{
 	constructor(mc: MeshcentralState) {
-		this.mc = mc;
-		this._meshes = $state({});
+		super(mc, {});
+        mc.on('meshes', this.handleMeshes)
+		this._data = $state({});
 	}
 
-	meshes() {
-		if (!this.loaded) {
-			//this.mc.send({action: 'meshes'});
-			setTimeout(() => {
-				this._meshes['brg1'] = new Mesh(this.mc, {name: 'brg1', _id: 'brg1'});
-			},2000);
-			setTimeout(() => {
-				this._meshes['brg2'] = new Mesh(this.mc, {name: 'brg2', _id: 'brg2'});
-			},4000);
-			this.loaded = true;
-		}
-		return this._meshes;
-	}
+    private handleMeshes(data: { meshes: MeshData[] }): void {
+        const newData: {[key: string]: Mesh} = {}
+        for (const item of data.meshes) {
+            newData[item._id] = new Mesh(this.mc, {...item});
+        }
+        this._loaded = true;
+        this._deferred?.resolve()
+    }
+
+    protected load() {
+        //this.mc.send({action: 'meshes'});
+        setTimeout(() => {
+            this._data['brg1'] = new Mesh(this.mc, {name: 'brg1', _id: 'brg1'});
+        }, 2000);
+        setTimeout(() => {
+            this._data['brg2'] = new Mesh(this.mc, {name: 'brg2', _id: 'brg2'});
+        }, 4000);
+    }
+
 }
 
 class MeshcentralState {
@@ -70,6 +98,9 @@ class MeshcentralState {
 	private pingTimer?: number;
 	private sendQueue: object[] = [];
 	private connected: boolean = false;
+    private handlers: {
+        [key: string]: ((data: any) => void)[];
+    } = {};
 
 	public meshes: Meshes;
 
@@ -121,63 +152,73 @@ class MeshcentralState {
 	// 	});
 	// }
 
-	// connect(url: URL, authCookie?: string) {
-	// 	this.url = url;
-	// 	this.authCookie = authCookie;
-	//
-	// 	this._connect();
-	// }
-	//
-	// _connect() {
-	// 	if (this.ws || this.url == null) {
-	// 		return;
-	// 	}
-	//
-	// 	const url = new SvelteURL(this.url);
-	// 	if (this.authCookie) {
-	// 		url.searchParams.append('moreargs', '1');
-	// 	}
-	// 	this.ws = new WebSocket(url);
-	// 	this.ws.onopen = () => {
-	// 		this.handleOpen();
-	// 	};
-	// 	this.ws.onclose = () => {
-	// 		this.handleClose();
-	// 	};
-	// 	this.ws.onmessage = (e: MessageEvent) => {
-	// 		this.handleMessage(e.data);
-	// 	};
-	// }
-	//
-	// disconnect() {
-	// 	if (this.ws) {
-	// 		this.ws.close();
-	// 	}
-	// }
-	//
-	// handleOpen() {
-	// 	if (this.authCookie) {
-	// 		this.ws?.send(
-	// 			JSON.stringify({
-	// 				action: 'urlargs',
-	// 				args: {
-	// 					auth: this.authCookie
-	// 				}
-	// 			})
-	// 		);
-	// 	}
-	// 	this.pingTimer = setInterval(() => {
-	// 		this.send({ action: 'ping' });
-	// 	}, 29000);
-	// }
-	//
-	// handleMessage(message: string) {
-	// 	let data;
-	// 	try {
-	// 		data = JSON.parse(message);
-	// 	} catch (e) {
-	// 		return;
-	// 	}
+	connect(url: URL, authCookie?: string) {
+		this.url = url;
+		this.authCookie = authCookie;
+
+		this._connect();
+	}
+
+	_connect() {
+		if (this.ws || this.url == null) {
+			return;
+		}
+
+		const url = new SvelteURL(this.url);
+		if (this.authCookie) {
+			url.searchParams.append('moreargs', '1');
+		}
+		this.ws = new WebSocket(url);
+		this.ws.onopen = () => {
+			this.handleOpen();
+		};
+		this.ws.onclose = () => {
+			this.handleClose();
+		};
+		this.ws.onmessage = (e: MessageEvent) => {
+			this.handleMessage(e.data);
+		};
+	}
+
+	disconnect() {
+		if (this.ws) {
+			this.ws.close();
+		}
+	}
+
+	handleOpen() {
+		if (this.authCookie) {
+			this.ws?.send(
+				JSON.stringify({
+					action: 'urlargs',
+					args: {
+						auth: this.authCookie
+					}
+				})
+			);
+		}
+		this.pingTimer = setInterval(() => {
+			this.send({ action: 'ping' });
+		}, 29000);
+	}
+
+    on(action: string, fn: (data: any) => void) {
+        if (!this.handlers[action]) {
+            this.handlers[action] = [];
+        }
+        this.handlers[action].push(fn);
+    }
+
+
+	handleMessage(message: string) {
+        let data;
+        try {
+            data = JSON.parse(message);
+        } catch (e) {
+            return;
+        }
+        console.log(data);
+    }
 	//
 	// 	switch (data.action) {
 	// 		case 'serverinfo':
@@ -275,28 +316,28 @@ class MeshcentralState {
 	// // 	}
 	// // }
 	//
-	// handleClose() {
-	// 	if (this.pingTimer) {
-	// 		clearInterval(this.pingTimer);
-	// 		delete this.pingTimer;
-	// 	}
-	// 	delete this.ws;
-	// 	this.connected = false;
-	// }
-	//
-	// send(data: object) {
-	// 	this.sendQueue.push(data);
-	// 	this._sendQueue();
-	// }
-	//
-	// _sendQueue() {
-	// 	if (this.ws && this.connected) {
-	// 		for (const item of this.sendQueue) {
-	// 			this.ws.send(JSON.stringify(item));
-	// 		}
-	// 		this.sendQueue = [];
-	// 	}
-	// }
+	handleClose() {
+		if (this.pingTimer) {
+			clearInterval(this.pingTimer);
+			delete this.pingTimer;
+		}
+		delete this.ws;
+		this.connected = false;
+	}
+
+	send(data: object) {
+		this.sendQueue.push(data);
+		this._sendQueue();
+	}
+
+	_sendQueue() {
+		if (this.ws && this.connected) {
+			for (const item of this.sendQueue) {
+				this.ws.send(JSON.stringify(item));
+			}
+			this.sendQueue = [];
+		}
+	}
 	//
 	// // async getMeshes() {
 	// // 	if (this.meshesLoaded) {

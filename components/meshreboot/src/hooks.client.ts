@@ -8,6 +8,6 @@ export const init: ClientInit = async () => {
 	const URL='fill_with_url';
 	const COOKIE='fill_with_cookie';
 
-	//mc.connect(new SvelteURL(URL), COOKIE);
+	mc.connect(new SvelteURL(URL), COOKIE);
 
 }
