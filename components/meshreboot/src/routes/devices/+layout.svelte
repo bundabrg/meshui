@@ -3,10 +3,12 @@
         Input, Label, Helper, Button, Checkbox, A, Select, CloseButton,
         Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell
     } from "flowbite-svelte";
-    import {mc} from "$lib/meshcentral.svelte";
     import {resolve} from "$app/paths";
+    import {mc} from "$lib/meshcentral/meshcentral.svelte";
 
     let {children} = $props();
+    const meshes = $derived(mc.meshes.get());
+    $inspect(meshes);
 </script>
 
 <div class="flex flex-col p-3 min-w-[380px] border-e border-e-slate-300">
@@ -23,14 +25,16 @@
         </Input>
         <Select class="w-[150px]" placeholder="Sort"/>
     </div>
+    <!--{#await testdata then meshes}-->
     <div class="overflow-auto flex-grow-1">
         <Table class="mt-5" hoverable={true}>
             <TableBody>
-                {#each mc.meshes as mesh (mesh._id)}
+                {#each Object.keys(meshes) as meshId (meshId)}
+                    {@const mesh = meshes[meshId].data}
                     <TableBodyRow>
                         <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
                         <TableBodyCell class="w-full">
-                            <a href="{resolve('/devices/[device_id]', {device_id: mesh._id.substring(6)})}">
+                            <a href="{resolve('/devices/[device_id]', {device_id: encodeURIComponent(mesh._id.substring(0))})}">
                                 {mesh.name}
                             </a>
                         </TableBodyCell>
@@ -39,6 +43,7 @@
             </TableBody>
         </Table>
     </div>
+    <!--{/await}-->
     <div class="text-center">
         (Group Actions))
     </div>
