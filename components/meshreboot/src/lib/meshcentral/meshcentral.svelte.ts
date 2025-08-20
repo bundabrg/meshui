@@ -3,6 +3,7 @@ import type {
     Deferred,
     MeshData, NodeData,
 } from '$lib/meshcentral/types';
+import {DeferredLoader} from "$lib/meshcentral/utils.svelte";
 
 
 class Node {
@@ -31,12 +32,29 @@ class Mesh {
             current: data,
             nodes: new DeferredLoader<{ [key: string]: Node }>({
                 initialData: {},
+                setupFn: (obj) => {
+                    this.mc.on('event', this, ({data}) => {
+                        if (data.event.etype == 'mesh' && data.event.meshid == this._data.current._id) {
+                            switch (data.event.action) {
+                                case 'meshchange':
+                                    this._data.current = {
+                                        ...this._data.current,
+                                        name: data.event.name,
+                                        mtype: data.event.mtype,
+                                        desc: data.event.desc,
+                                        links: data.event.links,
+                                    }
+                                    break;
+                            }
+                        }
+                    });
+                },
                 loadFn: (obj) => {
                     this.mc.send({action: 'nodes', meshid: this._data.current._id});
-                    this.mc.onSingle('nodes', ({data}) => {
+                    this.mc.onSingle('nodes', this, ({data}) => {
                         if (this._data.current._id in data.nodes || Object.keys(data.nodes).length === 0) {
                             const newData: { [key: string]: Node } = {}
-                            for (const item of data.nodes[this._data.current._id]??[]) {
+                            for (const item of data.nodes[this._data.current._id] ?? []) {
                                 newData[item._id] = new Node(this.mc, {...item});
                             }
                             obj.set(newData);
@@ -57,58 +75,15 @@ class Mesh {
         return this._data.current;
     }
 
+    set current(current) {
+        this._data.current = current;
+    }
+
     get nodes() {
         return this._data.nodes.get();
     }
 }
 
-class DeferredLoader<T> {
-    private loadFn: (obj: DeferredLoader<T>) => void;
-    private promise: Promise<T>;
-    private resolve?: (value: PromiseLike<T> | T) => void;
-    private reject?: (reason?: any) => void;
-    private loading: boolean;
-    private _data: T;
-
-    constructor(initArgs: { loadFn: (obj: DeferredLoader<T>) => void, initialData: T }) {
-        this.loadFn = initArgs.loadFn;
-        this.promise = new Promise((resolve, reject) => {
-            this.resolve = resolve;
-            this.reject = reject;
-        })
-        this._data = $state(initArgs.initialData);
-        this.loading = false;
-    }
-
-    async awaitGet() {
-        this.load();
-        return this.promise;
-    }
-
-    private load() {
-        if (!this.loading) {
-            this.loading = true;
-            this.loadFn(this);
-        }
-    }
-
-    refresh() {
-        this.loading = false;
-        this.load();
-    }
-
-    set(data: T) {
-        this._data = data;
-        if (this.resolve) {
-            this.resolve(data);
-        }
-    }
-
-    get(): T {
-        this.load();
-        return this._data;
-    }
-}
 
 class MeshcentralState {
     private ws?: WebSocket;
@@ -118,10 +93,10 @@ class MeshcentralState {
     private sendQueue: object[] = [];
     private connected: boolean = false;
     private handlers: {
-        [key: string]: ((data: any) => void)[];
+        [key: string]: { obj: WeakRef<any>, fn: ((data: any) => void) }[];
     } = {};
     private oneshotHandlers: {
-        [key: string]: ((data: any) => void)[];
+        [key: string]: { obj: WeakRef<any>, fn: ((data: any) => void) }[];
     } = {}
 
 
@@ -141,9 +116,23 @@ class MeshcentralState {
     constructor() {
         this._data = $state({
             meshes: new DeferredLoader<{ [key: string]: Mesh }>({
+                setupFn: (obj) => {
+                    this.on('event', this, ({data}) => {
+                        if (data.event.etype == 'mesh') {
+                            switch (data.event.action) {
+                                case 'createmesh':
+                                    obj.get()[data.event.mesh._id] = new Mesh(this, {...data.event.mesh})
+                                    break;
+                                case 'deletemesh':
+                                    delete obj.get()[data.event.meshid];
+                                    break;
+                            }
+                        }
+                    });
+                },
                 loadFn: (obj) => {
                     this.send({action: 'meshes'});
-                    this.onSingle('meshes', ({data}) => {
+                    this.onSingle('meshes', this, ({data}) => {
                             const newData: { [key: string]: Mesh } = {}
                             for (const item of data.meshes) {
                                 newData[item._id] = new Mesh(this, {...item});
@@ -156,7 +145,7 @@ class MeshcentralState {
             })
         });
 
-        this.on('serverinfo', (data) => this.handleServerInfo(data));
+        this.on('serverinfo', this, (data) => this.handleServerInfo(data));
     }
 
 
@@ -253,18 +242,18 @@ class MeshcentralState {
         }, 29000);
     }
 
-    on(action: string, fn: (opts: { data: any, remove: () => void }) => void) {
+    on(action: string, obj: any, fn: (opts: { data: any, remove: () => void }) => void) {
         if (!this.handlers[action]) {
             this.handlers[action] = [];
         }
-        this.handlers[action].push(fn);
+        this.handlers[action].push({obj: new WeakRef(obj), fn: fn});
     }
 
-    onSingle(action: string, fn: (opts: { data: any }) => void) {
+    onSingle(action: string, obj: any, fn: (opts: { data: any }) => void) {
         if (!this.oneshotHandlers[action]) {
             this.oneshotHandlers[action] = [];
         }
-        this.oneshotHandlers[action].push(fn);
+        this.oneshotHandlers[action].push({obj: new WeakRef(obj), fn: fn});
     }
 
     handleServerInfo(data: any) {
@@ -280,21 +269,20 @@ class MeshcentralState {
         } catch (e) {
             return;
         }
-        for (const fn of this.handlers[data.action] ?? []) {
-            fn({
+        this.handlers[data.action] = this.handlers[data.action]?.filter(item => item.obj.deref());
+        for (const item of this.handlers[data.action] ?? []) {
+            item.fn({
                 data: data,
                 remove: () => {
-                    this.handlers[data.action] = this.handlers[data.action].filter(item => fn != item);
+                    this.handlers[data.action] = this.handlers[data.action].filter(i => i != item);
                 }
             });
         }
         // One Shot handlers remove themselves
         if ((data.action in this.oneshotHandlers) && (this.oneshotHandlers[data.action].length > 0)) {
-            const fn = this.oneshotHandlers[data.action].shift();
-            if (fn) {
-                fn({
-                    data: data,
-                })
+            const item = this.oneshotHandlers[data.action].shift();
+            if (item && item.obj.deref()) {
+                item.fn({data: data});
             }
         }
     }

@@ -8,7 +8,7 @@
 
     let {children, data} = $props();
     const meshes = $derived(data.meshes());
-    $inspect(meshes);
+
 </script>
 
 <div class="flex flex-col p-3 min-w-[380px] border-e border-e-slate-300">

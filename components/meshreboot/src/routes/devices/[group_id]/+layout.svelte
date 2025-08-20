@@ -5,10 +5,20 @@
     } from "flowbite-svelte";
     import {Cog, UserCircle, ComputerDesktop, LockClosed} from "@steeze-ui/heroicons";
     import {Icon} from "@steeze-ui/svelte-icon";
+    import {resolve} from "$app/paths";
+    import {goto} from "$app/navigation";
 
     let {children, data} = $props();
     const mesh = $derived(data.mesh());
-    $inspect(mesh);
+    const meshes = $derived(data.meshes());
+
+    $effect(() => {
+        // If mesh is deleted then redirect
+       if (!(mesh.current._id in meshes)) {
+           goto(resolve('/devices'));
+       }
+    });
+
 
 </script>
 <div class="flex flex-col flex-grow-1 p-3 min-w-[500px] bg-white border-e border-e-slate-300">
