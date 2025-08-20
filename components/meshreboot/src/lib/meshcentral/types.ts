@@ -79,12 +79,13 @@ export type MeshData = {
 	creatorname: string;
 };
 
-export type Node = {
+export type NodeData = {
 	type: 'node';
 	mtype: number;
 	_id: string;
 	icon: number;
 	name: string;
+    desc: string;
 	rname: string;
 	domain: string;
 	agent: {

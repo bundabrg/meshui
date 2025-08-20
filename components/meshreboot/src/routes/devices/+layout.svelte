@@ -6,8 +6,8 @@
     import {resolve} from "$app/paths";
     import {mc} from "$lib/meshcentral/meshcentral.svelte";
 
-    let {children} = $props();
-    const meshes = $derived(mc.meshes.get());
+    let {children, data} = $props();
+    const meshes = $derived(data.meshes());
     $inspect(meshes);
 </script>
 
@@ -30,13 +30,13 @@
         <Table class="mt-5" hoverable={true}>
             <TableBody>
                 {#each Object.keys(meshes) as meshId (meshId)}
-                    {@const mesh = meshes[meshId].get()}
+                    {@const mesh = meshes[meshId]}
                     <TableBodyRow>
                         <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
                         <TableBodyCell class="w-full">
-<!--                            <a href="{resolve('/devices/[group_id]', {group_id: encodeURIComponent(mesh._id.substring(0))})}">-->
-                                {mesh.name}
-<!--                            </a>-->
+                            <a href="{resolve('/devices/[group_id]', {group_id: encodeURIComponent(mesh.current._id.substring(0))})}">
+                                {mesh.current.name}
+                            </a>
                         </TableBodyCell>
                     </TableBodyRow>
                 {/each}
