@@ -14,9 +14,9 @@
 
     $effect(() => {
         // If mesh is deleted then redirect
-       if (!(mesh.current._id in meshes)) {
-           goto(resolve('/devices'));
-       }
+        if (!(mesh.current._id in meshes)) {
+            goto(resolve('/devices'));
+        }
     });
 
 
@@ -42,18 +42,21 @@
             <TableBody>
                 {#each Object.keys(mesh.nodes) as nodeId (nodeId)}
                     {@const node = mesh.nodes[nodeId]}
-                    {@const node_sessions = Object.keys(node.current.sessions?.kvm??{}).length}
+                    {@const node_sessions = Object.keys(node.current.sessions?.kvm ?? {}).length}
                     <TableBodyRow>
                         <TableBodyCell class="p-1">
                             <Checkbox/>
                         </TableBodyCell>
                         <TableBodyCell class="w-full">
-                            <h2 class="font-bold">{node.current.name}</h2>
-                            <span>{node.current.desc || node.current.osdesc}</span><br>
-                            <span>User: {node.current.users?.join(', ')}</span>
+                            <a href="{resolve('/devices/[group_id]/[node_id]', {group_id: encodeURIComponent(mesh.current._id), node_id: encodeURIComponent(node.current._id)})}">
+                                <h2 class="font-bold">{node.current.name}</h2>
+                                <span>{node.current.desc || node.current.osdesc}</span><br>
+                                <span>User: {node.current.users?.join(', ')}</span>
+                            </a>
                         </TableBodyCell>
                         <TableBodyCell class="text-gray-300">
-                            <Icon size="3em" src="{UserCircle}" theme="solid" class={['inline', node_sessions && 'text-blue-500']}/>
+                            <Icon size="3em" src="{UserCircle}" theme="solid"
+                                  class={['inline', node_sessions && 'text-blue-500']}/>
                             <Icon size="3em" src="{ComputerDesktop}" theme="solid"
                                   class={['inline', node.current.conn && 'text-green-800']}/>
                         </TableBodyCell>

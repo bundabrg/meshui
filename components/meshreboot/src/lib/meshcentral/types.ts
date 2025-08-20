@@ -85,7 +85,7 @@ export type NodeData = {
 	_id: string;
 	icon: number;
 	name: string;
-    desc: string;
+	desc: string;
 	rname: string;
 	domain: string;
 	agent: {
@@ -176,7 +176,7 @@ export type State = {
 	meshes: {
 		loaded?: boolean;
 		data: {
-			[key: string]: MeshData
-		}
-	}
-}
+			[key: string]: MeshData;
+		};
+	};
+};

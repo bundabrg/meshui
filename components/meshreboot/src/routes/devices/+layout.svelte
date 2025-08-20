@@ -17,10 +17,11 @@
         <span>(Selected Actions)</span>
     </div>
     <div class="flex flex-row items-center gap-2 ps-1">
-        <my-button type="checkbox" class="w-4 h-4 bg-gray-100 border-gray-300 dark:ring-offset-gray-800 focus:ring-2 me-2 rounded-sm text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:bg-gray-700 dark:border-gray-600"></my-button>
+        <my-button type="checkbox"
+                   class="w-4 h-4 bg-gray-100 border-gray-300 dark:ring-offset-gray-800 focus:ring-2 me-2 rounded-sm text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:bg-gray-700 dark:border-gray-600"></my-button>
         <Input type="text" placeholder="Filter">
             {#snippet right()}
-                <CloseButton onclick={() => (value = '')} />
+                <CloseButton onclick={() => (value = '')}/>
             {/snippet}
         </Input>
         <Select class="w-[150px]" placeholder="Sort"/>
@@ -32,7 +33,9 @@
                 {#each Object.keys(meshes) as meshId (meshId)}
                     {@const mesh = meshes[meshId]}
                     <TableBodyRow>
-                        <TableBodyCell class="p-1"><Checkbox/></TableBodyCell>
+                        <TableBodyCell class="p-1">
+                            <Checkbox/>
+                        </TableBodyCell>
                         <TableBodyCell class="w-full">
                             <a href="{resolve('/devices/[group_id]', {group_id: encodeURIComponent(mesh.current._id.substring(0))})}">
                                 {mesh.current.name}
