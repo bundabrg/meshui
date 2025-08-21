@@ -6,7 +6,7 @@ export const load: PageLoad = async ({ params, parent }) => {
     const { mesh } = await parent();
 
     if (!(params.node_id in mesh().nodes)) {
-        redirect(301, resolve('/devices/[group_id]', { group_id: params.group_id }));
+        redirect(301, resolve('/devices/[group_id]', { group_id: encodeURIComponent(params.group_id)}));
     }
 
     const node = mesh().nodes[params.node_id];
