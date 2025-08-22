@@ -32,5 +32,6 @@
             style="background-color:black;width:640px;height:480px"
     >
     </canvas>
+    <a target="_blank" href="{resolve('/view/[group_id]/[node_id]', {group_id: encodeURIComponent(mesh.current._id), node_id: encodeURIComponent(node.current._id)})}">Full Screen</a>
     <button onclick={() => { streaming?node.hide():node.show('kvm1');streaming = !streaming; }}>click me</button>
 </div>

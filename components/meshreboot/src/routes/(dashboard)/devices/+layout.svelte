@@ -16,7 +16,7 @@
         TableHeadCell,
     } from 'flowbite-svelte';
     import { resolve } from '$app/paths';
-    import { mc } from '$lib/meshcentral/meshcentral.svelte';
+    import { mc } from '$lib/meshcentral/meshcentral.svelte.js';
 
     let { children, data } = $props();
     const meshes = $derived(data.meshes());
