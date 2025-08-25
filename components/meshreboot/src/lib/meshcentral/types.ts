@@ -19,7 +19,7 @@ export type ServerInfo = {
     manageAllDeviceGroups: boolean;
     certExpire: number;
     linuxshell: string;
-    [propName: string]: unknown;
+    // [propName: string]: unknown;
 };
 
 export type UserInfo = {
@@ -39,7 +39,7 @@ export type UserInfo = {
     emailVerified: boolean;
     otpkeys: number;
     pastlogin: number;
-    [propName: string]: unknown;
+    // [propName: string]: unknown;
 };
 
 export type ServerStats = {
@@ -77,6 +77,12 @@ export type MeshData = {
     creation: number;
     creatorid: string;
     creatorname: string;
+    flags: unknown;
+    consent: unknown;
+    amt: unknown;
+    invite: unknown;
+    expireDevs: unknown;
+    relayid: unknown;
 };
 
 export type NodeData = {

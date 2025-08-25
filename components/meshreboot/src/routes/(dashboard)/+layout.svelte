@@ -11,7 +11,7 @@
 </svelte:head>
 
 <div class="flex h-screen flex-col font-primary lg:flex-row">
-    <nav class="flex flex-row items-center bg-[var(--nav-background)] lg:items-start">
+    <nav class="flex flex-row items-center bg-[var(--nav-background)] dark:bg-red-500 lg:items-start">
         <ul class="grow">
             <li class="hidden p-3 transition hover:bg-[var(--nav-background-hover)] lg:block">
                 <a

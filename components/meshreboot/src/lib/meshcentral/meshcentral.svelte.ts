@@ -1,17 +1,36 @@
 import { SvelteURL } from 'svelte/reactivity';
-import type { Deferred, MeshData, NodeData } from '$lib/meshcentral/types';
+import type { MeshData, NodeData, ServerInfo, UserInfo } from '$lib/meshcentral/types';
 import { DeferredLoader } from '$lib/meshcentral/utils.svelte';
 import { AgentRedirWs } from '$lib/meshcentral/agent_redir_ws';
 
 export class Node {
     private _data;
     private mc;
+    private mesh: Mesh;
     private desk?;
 
-    constructor(mc: MeshcentralState, data: NodeData) {
+    constructor(mc: MeshcentralState, mesh: Mesh, data: NodeData) {
         this.mc = mc;
+        this.mesh = mesh;
         this._data = $state({
             current: data,
+        });
+        this.mc.on('event', this, ({ data }) => {
+            switch (data.event.action) {
+                case 'changenode':
+                    if (data.event.node._id == this.current._id) {
+                        this._data.current = {
+                            ...this._data.current,
+                            ...data.event.node,
+                        };
+                    }
+                    break;
+                case 'devicesessions':
+                    if (data.event.nodeid == this.current._id) {
+                        this._data.current.sessions = data.event.sessions;
+                    }
+                    break;
+            }
         });
     }
 
@@ -19,8 +38,7 @@ export class Node {
         return this._data.current;
     }
 
-    async load() {
-    }
+    async load() {}
 
     hide() {
         if (this.desk) {
@@ -49,12 +67,11 @@ export class Node {
             document.onkeydown = module.xxKeyDown;
             document.onkeypress = module.xxKeyPress;
             module.xxKeyInputGrab = true;
-        }
+        };
 
+        this.desk = new AgentRedirWs({ module: module, node: this, mc: this.mc });
 
-        this.desk = new AgentRedirWs({module: module, node:this, mc:this.mc});
-
-        this.desk.connect()
+        this.desk.connect();
 
         module.GrabMouseInput();
         module.GrabKeyInput();
@@ -67,30 +84,43 @@ export class Mesh {
 
     constructor(mc: MeshcentralState, data: MeshData) {
         this.mc = mc;
+        this.mc.on('event', this, ({ data }) => {
+            switch (data.event.action) {
+                case 'meshchange':
+                    if (data.event.meshid == this._data.current._id) {
+                        this._data.current = {
+                            ...this._data.current,
+                            name: data.event.name,
+                            mtype: data.event.mtype,
+                            desc: data.event.desc,
+                            flags: data.event.flags,
+                            consent: data.event.consent,
+                            links: data.event.links,
+                            amt: data.event.amt,
+                            invite: data.event.invite,
+                            expireDevs: data.event.expireDevs,
+                            relayid: data.event.relayid,
+                        };
+                    }
+                    break;
+                case 'addnode':
+                    if (data.event.node.meshid == this.current._id) {
+                        this.nodes[data.event.node._id] = new Node(mc, this, {
+                            ...data.event.node,
+                        });
+                    }
+                    break;
+                case 'removenode':
+                    if (this.nodes[data.event.node._id]) {
+                        delete this.nodes[data.event.node._id];
+                    }
+                    break;
+            }
+        });
         this._data = $state({
             current: data,
             nodes: new DeferredLoader<{ [key: string]: Node }>({
                 initialData: {},
-                setupFn: (obj) => {
-                    this.mc.on('event', this, ({ data }) => {
-                        if (
-                            data.event.etype == 'mesh' &&
-                            data.event.meshid == this._data.current._id
-                        ) {
-                            switch (data.event.action) {
-                                case 'meshchange':
-                                    this._data.current = {
-                                        ...this._data.current,
-                                        name: data.event.name,
-                                        mtype: data.event.mtype,
-                                        desc: data.event.desc,
-                                        links: data.event.links,
-                                    };
-                                    break;
-                            }
-                        }
-                    });
-                },
                 loadFn: (obj) => {
                     this.mc.send({ action: 'nodes', meshid: this._data.current._id });
                     this.mc.onSingle('nodes', this, ({ data }) => {
@@ -100,7 +130,7 @@ export class Mesh {
                         ) {
                             const newData: { [key: string]: Node } = {};
                             for (const item of data.nodes[this._data.current._id] ?? []) {
-                                newData[item._id] = new Node(this.mc, { ...item });
+                                newData[item._id] = new Node(this.mc, this, { ...item });
                             }
                             obj.set(newData);
                         }
@@ -143,10 +173,23 @@ export class MeshcentralState {
         [key: string]: { obj: WeakRef<any>; fn: (data: any) => void }[];
     } = {};
 
-    private _data;
+    private _data: {
+        meshes: DeferredLoader<{ [key: string]: Mesh }>;
+        serverinfo?: ServerInfo;
+        userinfo?: UserInfo;
+
+    };
 
     get meshes() {
         return this._data.meshes.get();
+    }
+
+    get serverinfo() {
+        return this._data.serverinfo;
+    }
+
+    get userinfo() {
+        return this._data.userinfo;
     }
 
     // Wait for everything to load
@@ -157,22 +200,6 @@ export class MeshcentralState {
     constructor() {
         this._data = $state({
             meshes: new DeferredLoader<{ [key: string]: Mesh }>({
-                setupFn: (obj) => {
-                    this.on('event', this, ({ data }) => {
-                        if (data.event.etype == 'mesh') {
-                            switch (data.event.action) {
-                                case 'createmesh':
-                                    obj.get()[data.event.mesh._id] = new Mesh(this, {
-                                        ...data.event.mesh,
-                                    });
-                                    break;
-                                case 'deletemesh':
-                                    delete obj.get()[data.event.meshid];
-                                    break;
-                            }
-                        }
-                    });
-                },
                 loadFn: (obj) => {
                     this.send({ action: 'meshes' });
                     this.onSingle('meshes', this, ({ data }) => {
@@ -187,10 +214,53 @@ export class MeshcentralState {
             }),
         });
 
-        this.on('serverinfo', this, (data) => this.handleServerInfo(data));
+        this.on('serverinfo', this, ({ data }) => {
+            this.connected = true;
+            this._data.serverinfo = { ...data.serverinfo };
+
+            this._sendQueue();
+        });
+        this.on('userinfo', this, ({ data }) => {
+            this._data.userinfo = { ...data.userinfo };
+        });
+        this.on('event', this, ({ data }) => {
+            switch (data.event.action) {
+                case 'createmesh':
+                    this.meshes[data.event.mesh._id] = new Mesh(this, {
+                        ...data.event.mesh,
+                    });
+                    break;
+                case 'deletemesh':
+                    delete this.meshes[data.event.meshid];
+                    break;
+                case 'nodemeshchange':
+                    const oldMesh = this.meshes[data.event.oldMeshId];
+                    const newMesh = this.meshes[data.event.newMeshId];
+                    let node: Node | null = null;
+                    if (oldMesh) {
+                        node = oldMesh.nodes[data.event.nodeid];
+                        delete oldMesh.nodes[data.event.nodeid];
+                    }
+                    if (newMesh) {
+                        if (node) {
+                            newMesh.nodes[node.current._id] = node;
+                        } else {
+                            newMesh.nodes[data.event.node._id] = new Node(this, newMesh, {
+                                ...data.event.node,
+                            });
+                        }
+                    }
+                    break;
+            }
+        });
     }
 
-    connect(initArgs: {url: URL, authCookie?: string, authRelayCookie?: string, domainUrl: string}) {
+    connect(initArgs: {
+        url: URL;
+        authCookie?: string;
+        authRelayCookie?: string;
+        domainUrl: string;
+    }) {
         this.url = initArgs.url;
         this.authCookie = initArgs.authCookie;
         this.domainUrl = initArgs.domainUrl;
@@ -254,11 +324,6 @@ export class MeshcentralState {
             this.oneshotHandlers[action] = [];
         }
         this.oneshotHandlers[action].push({ obj: new WeakRef(obj), fn: fn });
-    }
-
-    handleServerInfo(data: any) {
-        this.connected = true;
-        this._sendQueue();
     }
 
     handleMessage(message: string) {
