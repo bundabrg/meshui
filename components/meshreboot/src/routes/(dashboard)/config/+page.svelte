@@ -1,5 +1,6 @@
 <script lang="ts">
 </script>
 
-
-Config Stuff
+<div class="bg-green-500 dark:bg-red-500">
+    Config
+</div>

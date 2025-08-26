@@ -8,6 +8,7 @@ export class Node {
     private mc;
     private mesh: Mesh;
     private desk?;
+    public loaded : boolean = $state(false);
 
     constructor(mc: MeshcentralState, mesh: Mesh, data: NodeData) {
         this.mc = mc;
@@ -38,7 +39,9 @@ export class Node {
         return this._data.current;
     }
 
-    async load() {}
+    async load() {
+        this.loaded = true;
+    }
 
     hide() {
         if (this.desk) {
@@ -81,6 +84,7 @@ export class Node {
 export class Mesh {
     private _data;
     private mc;
+    public loaded: boolean = $state(false);
 
     constructor(mc: MeshcentralState, data: MeshData) {
         this.mc = mc;
@@ -142,6 +146,7 @@ export class Mesh {
 
     async load() {
         await Promise.all([this._data.nodes.awaitGet()]);
+        this.loaded = true;
     }
 
     get current() {
@@ -166,6 +171,7 @@ export class MeshcentralState {
     private pingTimer?: number;
     private sendQueue: object[] = [];
     private connected: boolean = false;
+    public loaded: boolean = $state(false);
     private handlers: {
         [key: string]: { obj: WeakRef<any>; fn: (data: any) => void }[];
     } = {};
@@ -195,6 +201,7 @@ export class MeshcentralState {
     // Wait for everything to load
     async load() {
         await Promise.all([this._data.meshes.awaitGet()]);
+        this.loaded = true;
     }
 
     constructor() {
