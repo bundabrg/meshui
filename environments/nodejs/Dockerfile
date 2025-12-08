@@ -1,9 +1,9 @@
 FROM ubuntu:24.04 AS environment
 
 ARG workdir=/work
-ARG homedir=/home/dev
+ARG localdir=/local
 ENV WORKDIR=${workdir}
-ENV HOMEDIR=${homedir}
+ENV LOCALDIR=${localdir}
 
 RUN \
   apt-get update
@@ -17,6 +17,7 @@ RUN \
     apt-get install -y --no-install-recommends \
         dumb-init \
         gosu \
+        less \
         tzdata \
         && \
     dpkg-reconfigure --frontend noninteractive tzdata
@@ -24,8 +25,11 @@ RUN \
 # Install NodeJS
 RUN \
   apt-get install -y curl && \
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
   apt-get install -y nodejs
+
+# Setup path in localdir
+ENV PATH="${WORKDIR}/scripts:${PATH}"
 
 COPY --chmod=0500 docker-entrypoint.sh docker-entrypoint.sh
 WORKDIR ${workdir}

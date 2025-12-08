@@ -10,10 +10,11 @@ fi
 RUN_USER=$(id -un ${RUN_UID})
 if [ -z ${RUN_USER} ]; then
   RUN_USER=executor
-  useradd -u ${RUN_UID} --user-group -d ${HOMEDIR} ${RUN_USER} >& /dev/null
+  useradd -u ${RUN_UID} --user-group -d ${LOCALDIR}/home ${RUN_USER} >& /dev/null
 else
-  mv $(getent passwd ${RUN_USER} | cut -d : -f 6)/{.[!.],}* ${HOMEDIR} >& /dev/null
-  usermod -d ${HOMEDIR} ${RUN_USER}
+  gosu ${RUN_USER} mkdir -p ${LOCALDIR}/home
+  mv $(getent passwd ${RUN_USER} | cut -d : -f 6)/{.[!.],}* ${LOCALDIR}/home >& /dev/null
+  usermod -d ${LOCALDIR}/home ${RUN_USER}
 fi
 
 ### If a docker.sock exists we will update our docker group to match its group

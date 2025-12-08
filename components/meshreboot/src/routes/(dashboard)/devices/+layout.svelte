@@ -2,15 +2,18 @@
     import {resolve} from '$app/paths';
     import {mc} from '$lib/meshcentral/meshcentral.svelte.js';
     import {Input} from "$lib/components/ui/input";
+    import {Checkbox} from "$lib/components/ui/checkbox";
+    import * as Select from "$lib/components/ui/select/index";
     import * as Resizable from "$lib/components/ui/resizable/index.js";
+    import * as Table from "$lib/components/ui/table/index.js";
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const __ensureUsed = { Select, Resizable, Table } as const;
 
     let {children} = $props();
     const meshes = $derived(mc.meshes);
 </script>
 
-
-
-<!--<div class="flex min-w-[380px] flex-col border-e border-e-[var(&#45;&#45;separator-color)] dark:border-e-[var(&#45;&#45;separator-color-dark)] p-3">-->
 <Resizable.Pane>
     {#if mc.loaded}
     <div class="flex flex-row justify-between pb-10">
@@ -18,40 +21,35 @@
         <span>(Selected Actions)</span>
     </div>
     <div class="flex flex-row items-center gap-2 ps-1">
-        <my-button
-                type="checkbox"
-                class="text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 me-2 h-4 w-4 rounded-sm border-gray-300 bg-gray-100 focus:ring-2 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800"
-        ></my-button>
-<!--        <Input type="text" placeholder="Filter">-->
-<!--            {#snippet right()}-->
-<!--                <CloseButton onclick={() => (value = '')}/>-->
-<!--            {/snippet}-->
-<!--        </Input>-->
-<!--        <Select class="w-[150px]" placeholder="Sort"/>-->
+        <Checkbox />
+        <Input class="w-[180px]" type="text" placeholder="Filter" />
+        <Select.Root type="single">
+            <Select.Trigger class="w-[180px]">Select Something</Select.Trigger>
+            <Select.Content>
+                <Select.Item value="1">First Item</Select.Item>
+            </Select.Content>
+        </Select.Root>
     </div>
-<!--    <div class="flex-grow-1 overflow-auto">-->
-<!--        <Table class="mt-5" hoverable={true}>-->
-<!--            <TableBody>-->
-<!--                {#each Object.keys(meshes) as meshId (meshId)}-->
-<!--                    {@const mesh = meshes[meshId]}-->
-<!--                    <TableBodyRow>-->
-<!--                        <TableBodyCell class="p-1">-->
-<!--                            <Checkbox/>-->
-<!--                        </TableBodyCell>-->
-<!--                        <TableBodyCell class="w-full">-->
-<!--                            <a-->
-<!--                                    href={resolve('/devices/[group_id]', {-->
-<!--                                        group_id: encodeURIComponent(mesh.current._id.substring(0)),-->
-<!--                                    })}-->
-<!--                            >-->
-<!--                                {mesh.current.name}-->
-<!--                            </a>-->
-<!--                        </TableBodyCell>-->
-<!--                    </TableBodyRow>-->
-<!--                {/each}-->
-<!--            </TableBody>-->
-<!--        </Table>-->
-<!--    </div>-->
+    <Table.Root>
+<!--        <Table.Header>-->
+<!--            <Table.Row>-->
+<!--                <Table.Head>Status</Table.Head>-->
+<!--            </Table.Row>-->
+<!--        </Table.Header>-->
+        <Table.Body>
+            {#each Object.keys(meshes) as meshId (meshId)}
+                {@const mesh = meshes[meshId]}
+                <Table.Row>
+                    <Table.Cell><Checkbox /></Table.Cell>
+                    <Table.Cell class="w-full">
+                        <a href={resolve('/(dashboard)/devices/[group_id]', {
+                            group_id: encodeURIComponent(mesh.current._id.substring(0))
+                        })}>{mesh.current.name}</a>
+                    </Table.Cell>
+                </Table.Row>
+            {/each}
+        </Table.Body>
+    </Table.Root>
     <div class="text-center">(Group Actions)</div>
     {:else}
         <div
@@ -60,7 +58,6 @@
             Loading
         </div>
     {/if}
-<!--</div>-->
 </Resizable.Pane>
 <Resizable.Handle />
 {@render children?.()}

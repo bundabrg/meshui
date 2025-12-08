@@ -21,7 +21,7 @@
 
 # The full path to the root of the project.
 # Default: parent folder of this script
-PROJECT_DIR=${PROJECT_DIR:-$(realpath "$(dirname ${0})"/..)}
+PROJECT_DIR=${PROJECT_DIR:-$(realpath "$(dirname ${0})")}
 
 # Project name. Default uses the name of our parent folder
 PROJECT_NAME=${PROJECT_NAME:-$(basename ${PROJECT_DIR})}
@@ -38,8 +38,8 @@ PROJECT_COMPONENTS=${PROJECT_COMPONENTS:-${PROJECT_DIR}/components}
 # Docker Workdir. Default is /work
 DOCKER_WORKDIR=${DOCKER_WORKDIR:-/work}
 
-# Docker Homedir. Default is /home/dev
-DOCKER_HOMEDIR=${DOCKER_HOMEDIR:-/home/dev}
+# Docker Localdir. Default is /local
+DOCKER_LOCALDIR=${DOCKER_LOCALDIR:-/local}
 
 
 ###############################################################################
@@ -186,9 +186,9 @@ function command_in() {
   # Docker Flags
   FLAGS=""
 
-  # Cache key based on environment name and optionally component so each has their own cache
-  CACHE="${PROJECT_CACHE}/environments/$(basename "$(echo "${ENVIRONMENT}" | cut -d : -f 1)")/${COMPONENT}"
-  mkdir -p "${CACHE}" "${CACHE}/home"
+  # Cache key based on environment name and optionally component so each has their own local
+  LOCAL="${PROJECT_CACHE}/environments/$(basename "$(echo "${ENVIRONMENT}" | cut -d : -f 1)")/${COMPONENT}"
+  mkdir -p "${LOCAL}"
 
   # Detect if STDIN is open
   [ -t 0 ] && FLAGS="${FLAGS} -t"
@@ -200,11 +200,13 @@ function command_in() {
   docker run -i \
     ${FLAGS} \
     -v "${WORKDIR}":${DOCKER_WORKDIR} \
-    -v "${CACHE}/home":${DOCKER_HOMEDIR} \
+    -v "${LOCAL}":${DOCKER_LOCALDIR} \
     --net host \
-    ${PROJECT_NAME}/environment/dev
-
+    ${ENVIRONMENT_TAG} \
+    $@
+  CODE=$?
   log Exiting from executor environment
+  exit ${CODE}
 }
 
 

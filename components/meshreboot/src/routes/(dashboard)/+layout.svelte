@@ -53,7 +53,7 @@
     </Sidebar.Root>
 <!--    class="flex w-full flex-col bg-[var(&#45;&#45;page-background)] dark:bg-[var(&#45;&#45;page-background-dark)] text-[var(&#45;&#45;text-color)] dark:text-[var(&#45;&#45;text-color-dark)] lg:flex-row"-->
     <main class="w-full">
-        <Sidebar.Trigger />
+<!--        <Sidebar.Trigger />-->
         <Resizable.PaneGroup direction="horizontal">
         {@render children?.()}
         </Resizable.PaneGroup>
