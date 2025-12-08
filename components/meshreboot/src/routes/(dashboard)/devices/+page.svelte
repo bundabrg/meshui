@@ -1,26 +1,11 @@
 <script lang="ts">
-    import {
-        Input,
-        Label,
-        Helper,
-        Button,
-        Checkbox,
-        A,
-        Select,
-        CloseButton,
-        Table,
-        TableBody,
-        TableBodyCell,
-        TableBodyRow,
-        TableHead,
-        TableHeadCell,
-    } from 'flowbite-svelte';
-    import { Cog, UserCircle, ComputerDesktop, LockClosed } from '@steeze-ui/heroicons';
-    import { Icon } from '@steeze-ui/svelte-icon';
+    import * as Resizable from "$lib/components/ui/resizable/index.js";
 </script>
 
-<div
-    class="flex min-w-[500px] flex-grow-1 flex-col items-center justify-center border-e border-e-slate-300 bg-white p-3"
->
+<!--<div-->
+<!--    class="flex min-w-[500px] flex-grow-1 flex-col items-center justify-center border-e border-e-[var(&#45;&#45;separator-color)] dark:border-e-[var(&#45;&#45;separator-color-dark)] bg-[var(&#45;&#45;page-background-secondary)] dark:bg-[var(&#45;&#45;page-background-secondary-dark)] p-3"-->
+<!--&gt;-->
+<Resizable.Pane>
     Please select a Group
-</div>
+<!--</div>-->
+</Resizable.Pane>

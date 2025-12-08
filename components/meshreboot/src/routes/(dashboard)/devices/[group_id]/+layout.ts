@@ -20,6 +20,6 @@ export const load: LayoutLoad = async ({ params, parent }) => {
     // If we can, try to pre-load nodes
     if (mc.loaded) {
         const mesh = mc.meshes[params.group_id];
-        mesh.load();
+        mesh?.load();
     }
 };
