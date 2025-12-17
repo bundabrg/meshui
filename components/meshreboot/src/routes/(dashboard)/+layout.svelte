@@ -10,6 +10,7 @@
     let { children } = $props();
 
     import { useSidebar } from "$lib/components/ui/sidebar/index.js";
+    import {resolve} from "$app/paths";
 
     const sidebar = $derived(useSidebar());
 
@@ -29,7 +30,7 @@
                     <Sidebar.MenuItem>
                         <Sidebar.MenuButton>
                             {#snippet child({ props })}
-                                <a href="/devices" {...props}>
+                                <a href={resolve('/devices')} {...props}>
                                     <Icon src={ComputerDesktop} theme="solid" />
                                     <span>Devices</span>
                                 </a>

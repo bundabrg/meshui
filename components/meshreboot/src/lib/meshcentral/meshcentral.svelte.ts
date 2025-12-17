@@ -8,7 +8,7 @@ export class Node {
     private mc;
     private mesh: Mesh;
     private desk?;
-    public loaded : boolean = $state(false);
+    public loaded: boolean = $state(false);
 
     constructor(mc: MeshcentralState, mesh: Mesh, data: NodeData) {
         this.mc = mc;
@@ -147,6 +147,7 @@ export class Mesh {
     async load() {
         await Promise.all([this._data.nodes.awaitGet()]);
         this.loaded = true;
+        return this;
     }
 
     get current() {
@@ -169,6 +170,7 @@ export class MeshcentralState {
     public authRelayCookie?: string;
     public domainUrl?: string;
     private pingTimer?: number;
+    private authTimer?: number;
     private sendQueue: object[] = [];
     private connected: boolean = false;
     public loaded: boolean = $state(false);
@@ -183,7 +185,6 @@ export class MeshcentralState {
         meshes: DeferredLoader<{ [key: string]: Mesh }>;
         serverinfo?: ServerInfo;
         userinfo?: UserInfo;
-
     };
 
     get meshes() {
@@ -202,6 +203,7 @@ export class MeshcentralState {
     async load() {
         await Promise.all([this._data.meshes.awaitGet()]);
         this.loaded = true;
+        return this;
     }
 
     constructor() {
@@ -221,15 +223,11 @@ export class MeshcentralState {
             }),
         });
 
-        this.on('serverinfo', this, ({ data }) => {
-            this.connected = true;
-            this._data.serverinfo = { ...data.serverinfo };
+        this.on('authcookie', this, ({ data }) => {
+            this.authCookie = data.cookie;
+            this.authRelayCookie = data.rcookie;
+        });
 
-            this._sendQueue();
-        });
-        this.on('userinfo', this, ({ data }) => {
-            this._data.userinfo = { ...data.userinfo };
-        });
         this.on('event', this, ({ data }) => {
             switch (data.event.action) {
                 case 'createmesh':
@@ -240,7 +238,7 @@ export class MeshcentralState {
                 case 'deletemesh':
                     delete this.meshes[data.event.meshid];
                     break;
-                case 'nodemeshchange':
+                case 'nodemeshchange': {
                     const oldMesh = this.meshes[data.event.oldMeshId];
                     const newMesh = this.meshes[data.event.newMeshId];
                     let node: Node | null = null;
@@ -258,7 +256,19 @@ export class MeshcentralState {
                         }
                     }
                     break;
+                }
             }
+        });
+
+        this.on('serverinfo', this, ({ data }) => {
+            this.connected = true;
+            this._data.serverinfo = { ...data.serverinfo };
+            this.send({ action: 'authcookie' });
+            this._sendQueue();
+
+        });
+        this.on('userinfo', this, ({ data }) => {
+            this._data.userinfo = { ...data.userinfo };
         });
     }
 
@@ -314,6 +324,9 @@ export class MeshcentralState {
                 })
             );
         }
+        this.authTimer = setInterval(() => {
+            this.send({ action: 'authcookie' });
+        }, 1800000)
         this.pingTimer = setInterval(() => {
             this.send({ action: 'ping' });
         }, 29000);
@@ -364,6 +377,10 @@ export class MeshcentralState {
         if (this.pingTimer) {
             clearInterval(this.pingTimer);
             delete this.pingTimer;
+        }
+        if (this.authTimer) {
+            clearInterval(this.authTimer);
+            delete this.authTimer;
         }
         delete this.ws;
         this.connected = false;

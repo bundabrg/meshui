@@ -31,69 +31,73 @@
 
 <Resizable.Pane>
     {#if mesh?.loaded }
-        <div class="flex flex-row justify-between pb-10">
-            <h1 class="text-4xl">Devices</h1>
-            <span>(Selected Actions)</span>
+        <div class="flex flex-col h-screen">
+            <div class="flex flex-row justify-between pb-10">
+                <h1 class="text-4xl">Devices</h1>
+                <span>(Selected Actions)</span>
+            </div>
+            <div class="flex flex-row items-center gap-2 ps-1">
+                <Checkbox />
+                <Input class="w-[180px]" type="text" placeholder="Filter" />
+                <Select.Root type="single">
+                    <Select.Trigger class="w-[180px]">Status</Select.Trigger>
+                    <Select.Content>
+                        <Select.Item value="1">First Item</Select.Item>
+                    </Select.Content>
+                </Select.Root>
+                <Select.Root type="single">
+                    <Select.Trigger class="w-[180px]">Sort</Select.Trigger>
+                    <Select.Content>
+                        <Select.Item value="1">First Item</Select.Item>
+                    </Select.Content>
+                </Select.Root>
+            </div>
+            <div class="flex-1  overflow-y-auto">
+                <Table.Root>
+                    <!--        <Table.Header>-->
+                    <!--            <Table.Row>-->
+                    <!--                <Table.Head>Status</Table.Head>-->
+                    <!--            </Table.Row>-->
+                    <!--        </Table.Header>-->
+                    <Table.Body>
+                        {#each Object.keys(mesh.nodes ?? []) as nodeId (nodeId)}
+                            {@const node = mesh.nodes[nodeId]}
+                            {@const node_sessions = Object.keys(node.current.sessions?.kvm ?? {}).length}
+                            <Table.Row>
+                                <Table.Cell><Checkbox/></Table.Cell>
+                                <Table.Cell>
+                                    <a
+                                            href={resolve('/(dashboard)/devices/[group_id]/[node_id]', {
+                                                group_id: encodeURIComponent(mesh.current._id),
+                                                node_id: encodeURIComponent(node.current._id),
+                                            })}
+                                    >
+                                        <h2 class="font-bold">{node.current.name}</h2>
+                                        <span>{node.current.desc || node.current.osdesc}</span><br/>
+                                        <span>User: {node.current.users?.join(', ')}</span>
+                                    </a>
+                                </Table.Cell>
+                                <Table.Cell>
+                                    <Icon
+                                            size="3em"
+                                            src={UserCircle}
+                                            theme="solid"
+                                            class={['inline', node_sessions && 'text-blue-500']}
+                                    />
+                                    <Icon
+                                            size="3em"
+                                            src={ComputerDesktop}
+                                            theme="solid"
+                                            class={['inline', node.current.conn && 'text-green-800']}
+                                    />
+                                </Table.Cell>
+                            </Table.Row>
+                        {/each}
+                    </Table.Body>
+                </Table.Root>
+            </div>
+            <div class="pb-[100px] border-t-2 text-center">(Group Actions)</div>
         </div>
-        <div class="flex flex-row items-center gap-2 ps-1">
-            <Checkbox />
-            <Input class="w-[180px]" type="text" placeholder="Filter" />
-            <Select.Root type="single">
-                <Select.Trigger class="w-[180px]">Status</Select.Trigger>
-                <Select.Content>
-                    <Select.Item value="1">First Item</Select.Item>
-                </Select.Content>
-            </Select.Root>
-            <Select.Root type="single">
-                <Select.Trigger class="w-[180px]">Sort</Select.Trigger>
-                <Select.Content>
-                    <Select.Item value="1">First Item</Select.Item>
-                </Select.Content>
-            </Select.Root>
-        </div>
-        <Table.Root>
-            <!--        <Table.Header>-->
-            <!--            <Table.Row>-->
-            <!--                <Table.Head>Status</Table.Head>-->
-            <!--            </Table.Row>-->
-            <!--        </Table.Header>-->
-            <Table.Body>
-                {#each Object.keys(mesh.nodes ?? []) as nodeId (nodeId)}
-                    {@const node = mesh.nodes[nodeId]}
-                    {@const node_sessions = Object.keys(node.current.sessions?.kvm ?? {}).length}
-                    <Table.Row>
-                        <Table.Cell><Checkbox/></Table.Cell>
-                        <Table.Cell>
-                            <a
-                                    href={resolve('/(dashboard)/devices/[group_id]/[node_id]', {
-                                        group_id: encodeURIComponent(mesh.current._id),
-                                        node_id: encodeURIComponent(node.current._id),
-                                    })}
-                            >
-                                <h2 class="font-bold">{node.current.name}</h2>
-                                <span>{node.current.desc || node.current.osdesc}</span><br/>
-                                <span>User: {node.current.users?.join(', ')}</span>
-                            </a>
-                        </Table.Cell>
-                        <Table.Cell>
-                            <Icon
-                                    size="3em"
-                                    src={UserCircle}
-                                    theme="solid"
-                                    class={['inline', node_sessions && 'text-blue-500']}
-                            />
-                            <Icon
-                                    size="3em"
-                                    src={ComputerDesktop}
-                                    theme="solid"
-                                    class={['inline', node.current.conn && 'text-green-800']}
-                            />
-                        </Table.Cell>
-                    </Table.Row>
-                {/each}
-            </Table.Body>
-        </Table.Root>
-        <div class="text-center">(Group Actions)</div>
     {:else}
         <div
                 class="flex flex-col m-auto items-center justify-center"

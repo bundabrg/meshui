@@ -4,6 +4,8 @@
     import {mc} from "$lib/meshcentral/meshcentral.svelte";
     import {page} from "$app/state";
 
+    import * as Tabs from "$lib/components/ui/tabs/index.js";
+
     let {data} = $props();
     const mesh = $derived(mc.loaded && page.params.group_id?mc.meshes[page.params.group_id]:null);
     const node = $derived(mesh && page.params.node_id?mesh.nodes[page.params.node_id]:null);
@@ -32,6 +34,21 @@
 <div
         class="flex min-w-[380px] flex-col items-center justify-center border-e border-e-slate-300 p-3"
 >
+    <Tabs.Root value="account" class="w-[400px]">
+        <Tabs.List>
+            <Tabs.Trigger value="account">Account</Tabs.Trigger>
+            <Tabs.Trigger value="account">Account</Tabs.Trigger>
+            <Tabs.Trigger value="account">Account</Tabs.Trigger>
+            <Tabs.Trigger value="account">Account</Tabs.Trigger>
+            <Tabs.Trigger value="account">Account</Tabs.Trigger>
+            <Tabs.Trigger value="password">Password</Tabs.Trigger>
+        </Tabs.List>
+        <Tabs.Content value="account">
+            Make changes to your account here.
+        </Tabs.Content>
+        <Tabs.Content value="password">Change your password here.</Tabs.Content>
+    </Tabs.Root>
+
     {#if node?.loaded}
     {node.current.name}
     <canvas
